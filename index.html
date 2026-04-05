@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Eduardo's Restaurante</title>
     <!-- Ícone para atalho na tela inicial (Android, iOS, Windows) -->
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="apple-touch-icon.png">
-    <link rel="shortcut icon" href="apple-touch-icon.png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="logo.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="logo.png">
+    <link rel="shortcut icon" href="logo.png">
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,6 +17,7 @@
     <meta name="theme-color" content="#1a1a2e">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
+.produto-img{width:100%;height:180px;object-fit:cover;border-radius:12px;}
         :root {
             --primary: #1a1a2e; --accent: #e8810a; --accent2: #f5a623;
             --success: #1fa05e; --danger: #c0392b; --light: #f9f5f0;
@@ -800,7 +801,7 @@ window.adicionarProduto = async () => {
     const fotoFile=document.getElementById('p-foto').files[0];
     if(!nome||isNaN(preco)||preco<=0) return alert('Preencha nome e preço!');
     const salvar = async(foto) => {
-        await addDoc(collection(db,'produtos'),{id:Date.now(),nome,preco,cat,promo,foto:foto||''});
+        await addDoc(collection(db,'produtos'),{id:Date.now(),nome,preco,cat,promo,foto:foto||'logo.jpeg'});
         document.getElementById('p-nome').value=''; document.getElementById('p-preco').value=''; document.getElementById('p-foto').value='';
         mostrarToast('✅ Produto cadastrado!');
     };
@@ -837,7 +838,7 @@ function renderCardapio() {
         if(!filtrados.length){div.innerHTML='<p style="color:var(--muted);padding:10px 0;font-size:0.9rem;">Nenhum item nesta categoria.</p>';return;}
         filtrados.forEach(p=>{
             div.innerHTML+=`<div class="card">${p.promo==='sim'?'<span class="badge-promo">🔥 Promoção</span>':''}
-            <img src="${p.foto||'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop'}" alt="${p.nome}" loading="lazy">
+            <img class="produto-img" src="${p.foto||'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop'}" alt="${p.nome}" loading="lazy">
             <div class="card-info"><h4>${p.nome}</h4><div class="preco">R$ ${p.preco.toFixed(2)}</div>
             <button class="btn btn-nav" style="width:100%;margin-top:6px;" onclick="addCarrinho('${p.firestoreId}')">+ Adicionar</button></div></div>`;
         });
@@ -1334,7 +1335,7 @@ window.renderBalcaoCardapio = () => {
         filtrados.forEach(p => {
             grid.innerHTML += `<div class="balcao-card">
                 ${p.promo === 'sim' ? '<span class="badge-promo" style="font-size:0.62rem;padding:2px 8px;">🔥 Promo</span>' : ''}
-                <img src="${p.foto || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop'}" alt="${p.nome}" loading="lazy">
+                <img class="produto-img" src="${p.foto || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop'}" alt="${p.nome}" loading="lazy">
                 <div class="balcao-card-info">
                     <h4>${p.nome}</h4>
                     <div class="preco" style="font-size:1rem;">R$ ${p.preco.toFixed(2)}</div>
