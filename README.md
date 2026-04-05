@@ -23,7 +23,7 @@ eduardos-restaurante/
     ├── icon-167x167.png
     ├── icon-180x180.png
     ├── icon-192x192.png
-    └── icon-512x512.png
+    └── icon-512x512.png 
 ```
 
 ---
