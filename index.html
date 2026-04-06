@@ -796,13 +796,54 @@ window.confirmarAddCarrinho = () => {
     mostrarToast(`✅ ${p.nome} adicionado!`);
 };
 
+// --- HELPER: Redimensiona imagem para max 800px e converte para Blob ---
+function redimensionarImagem(file, maxW=800, maxH=800, quality=0.75) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            let w = img.width, h = img.height;
+            if(w > maxW || h > maxH) {
+                const ratio = Math.min(maxW/w, maxH/h);
+                w = Math.round(w*ratio); h = Math.round(h*ratio);
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            canvas.toBlob(blob => {
+                if(blob) resolve(blob);
+                else reject(new Error('Falha ao processar imagem'));
+            }, 'image/jpeg', quality);
+        };
+        img.onerror = () => reject(new Error('Falha ao carregar imagem'));
+        img.src = url;
+    });
+}
+
 // --- HELPER: Upload de imagem para Firebase Storage ---
 async function uploadImagem(file, pasta) {
-    const ext = file.name.split('.').pop() || 'jpg';
-    const nome = pasta + '/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+    let blob;
+    try {
+        blob = await redimensionarImagem(file);
+    } catch(e) {
+        throw new Error('Erro ao processar imagem: ' + e.message);
+    }
+    const nome = pasta + '/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.jpg';
     const ref = storageRef(storage, nome);
-    await uploadBytes(ref, file);
-    return await getDownloadURL(ref);
+    try {
+        await uploadBytes(ref, blob, { contentType: 'image/jpeg' });
+        return await getDownloadURL(ref);
+    } catch(e) {
+        // Se Storage falhar (ex: regras bloqueando), converte para base64 reduzida como fallback
+        console.warn('Firebase Storage falhou, usando base64 reduzida:', e.message);
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = ev => resolve(ev.target.result);
+            reader.onerror = () => reject(new Error('Falha no fallback base64'));
+            reader.readAsDataURL(blob);
+        });
+    }
 }
 
 // --- PRODUTOS ---
