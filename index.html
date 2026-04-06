@@ -647,6 +647,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import { getFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, onSnapshot, query, orderBy, updateDoc, writeBatch, getDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDa_s26NFmVmJWsf94Hc-UXSmmj8dHLkOE",
@@ -659,6 +660,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 let produtos = [], pedidos = [], carrinho = [];
 const SENHA_KEY = 'df_senha_admin';
@@ -794,23 +796,28 @@ window.confirmarAddCarrinho = () => {
     mostrarToast(`✅ ${p.nome} adicionado!`);
 };
 
+// --- HELPER: Upload de imagem para Firebase Storage ---
+async function uploadImagem(file, pasta) {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const nome = pasta + '/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+    const ref = storageRef(storage, nome);
+    await uploadBytes(ref, file);
+    return await getDownloadURL(ref);
+}
+
 // --- PRODUTOS ---
 window.adicionarProduto = async () => {
     const nome=document.getElementById('p-nome').value.trim(), preco=parseFloat(document.getElementById('p-preco').value);
     const cat=document.getElementById('p-cat').value, promo=document.getElementById('p-promo').value;
     const fotoFile=document.getElementById('p-foto').files[0];
     if(!nome||isNaN(preco)||preco<=0) return alert('Preencha nome e preço!');
+    mostrarToast('⏳ Salvando produto...');
     try {
-        let foto = '';
+        let foto = 'logo.jpeg';
         if(fotoFile){
-            foto = await new Promise((resolve, reject) => {
-                const r = new FileReader();
-                r.onload = e => resolve(e.target.result);
-                r.onerror = () => reject(new Error('Erro ao ler imagem'));
-                r.readAsDataURL(fotoFile);
-            });
+            foto = await uploadImagem(fotoFile, 'produtos');
         }
-        await addDoc(collection(db,'produtos'),{id:Date.now(),nome,preco,cat,promo,foto:foto||'logo.jpeg'});
+        await addDoc(collection(db,'produtos'),{id:Date.now(),nome,preco,cat,promo,foto});
         document.getElementById('p-nome').value='';
         document.getElementById('p-preco').value='';
         document.getElementById('p-foto').value='';
@@ -833,13 +840,19 @@ window.salvarEdicaoProduto = async() => {
     const promo=document.getElementById('edit-promo').value, fotoFile=document.getElementById('edit-foto').files[0];
     if(!nome||isNaN(preco)||preco<=0) return alert('Preencha nome e preço!');
     const p=produtos.find(x=>x.firestoreId===fid); if(!p) return;
-    const aplicar = async(foto) => {
-        const atualizado={...p,nome,preco,cat,promo}; if(foto!==null) atualizado.foto=foto;
+    mostrarToast('⏳ Salvando...');
+    try {
+        const atualizado={...p,nome,preco,cat,promo};
+        if(fotoFile){
+            atualizado.foto = await uploadImagem(fotoFile, 'produtos');
+        }
         delete atualizado.firestoreId;
         await setDoc(doc(db,'produtos',fid),atualizado);
-        fecharModal('modal-editar-produto'); mostrarToast('✅ Produto atualizado!');
-    };
-    if(fotoFile){const r=new FileReader();r.onload=e=>aplicar(e.target.result);r.readAsDataURL(fotoFile);}else{await aplicar(null);}
+        fecharModal('modal-editar-produto');
+        mostrarToast('✅ Produto atualizado!');
+    } catch(e) {
+        alert('Erro ao atualizar produto: ' + e.message);
+    }
 };
 
 // --- CARDÁPIO ---
